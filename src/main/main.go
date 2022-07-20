@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strings"
 
 	"math/rand"
 	"os"
@@ -17,6 +18,15 @@ var (
 	f *os.File
 )
 
+type myFormatter struct {
+	log.TextFormatter
+}
+
+func (f *myFormatter) Format(entry *log.Entry) ([]byte, error) {
+	// this whole mess of dealing with ansi color codes is required if you want the colored output otherwise you will lose colors in the log levels
+	return []byte(fmt.Sprintf("%s[%s] %s", strings.ToUpper(entry.Level.String()), entry.Time.Format(f.TimestampFormat), entry.Message)), nil
+}
+
 func init() {
 	//flag.BoolVar(&help, "help", false, "help")
 	//
@@ -29,16 +39,24 @@ func init() {
 	//	flag.Usage()
 	//	os.Exit(0)
 	//}
-	testName = "basic"
-	var err error
-	f, err = os.Create("log.txt")
-	if err != nil {
-		fmt.Println("fail to open log file")
-	}
-	log.SetOutput(f)
+	testName = "all"
+	//var err error
+	//f, err = os.Create("log.txt")
+	//if err != nil {
+	//	fmt.Println("fail to open log file")
+	//}
+	//log.SetOutput(f)
 
-	//rand.Seed(time.Now().UnixNano())
-	rand.Seed(0)
+	f, _ := os.Create("out.log")
+	log.SetOutput(f)
+	log.SetFormatter(&myFormatter{log.TextFormatter{
+		FullTimestamp:          true,
+		TimestampFormat:        "15:04:05",
+		DisableLevelTruncation: true,
+	}})
+
+	rand.Seed(time.Now().UnixNano())
+	//rand.Seed(0)
 }
 
 func main() {

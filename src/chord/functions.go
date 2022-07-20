@@ -17,26 +17,34 @@ var (
 
 func init() {
 	localAddr = GetLocalIP()
-	//localAddr = "127.0.0.1"
 	base = big.NewInt(2)
 	Mod = new(big.Int).Exp(base, big.NewInt(160), nil)
-	CutTime = 200 * time.Millisecond
-	WaitTime = 200 * time.Millisecond
+	CutTime = 100 * time.Millisecond
+	WaitTime = 250 * time.Millisecond
 }
 
 func GetLocalIP() string {
 	var localaddress string
 
-	addrs, err := net.InterfaceAddrs()
+	ifaces, err := net.Interfaces()
 	if err != nil {
 		panic("init: failed to find network interfaces")
 	}
-	for _, address := range addrs {
-		// check the address type and if it is not a loopback the display it
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				localaddress = ipnet.IP.String()
-				break
+	for _, elt := range ifaces {
+		if elt.Flags&net.FlagLoopback == 0 && elt.Flags&net.FlagUp != 0 {
+			addrs, err := elt.Addrs()
+			if err != nil {
+				panic("init: failed to get addresses for network interface")
+			}
+
+			for _, addr := range addrs {
+				ipnet, ok := addr.(*net.IPNet)
+				if ok {
+					if ip4 := ipnet.IP.To4(); len(ip4) == net.IPv4len {
+						localaddress = ip4.String()
+						break
+					}
+				}
 			}
 		}
 	}
@@ -53,40 +61,16 @@ type Pair struct {
 	Value string
 }
 
-type Identifier struct {
-	Value *big.Int
-}
-
 /*(a,b)*/
-func (ID *Identifier) In(low, high *big.Int) bool {
+
+func In(target, low, high *big.Int) bool {
 	if val := low.Cmp(high); val < 0 {
-		return low.Cmp(ID.Value) < 0 && high.Cmp(ID.Value) > 0
+		return low.Cmp(target) < 0 && high.Cmp(target) > 0
 	} else if val == 0 {
-		return low.Cmp(ID.Value) != 0
+		return low.Cmp(target) != 0
 	}
 	//low>high
-	return low.Cmp(ID.Value) > 0 || high.Cmp(ID.Value) < 0
-}
-
-func (ID *Identifier) InLeftClose(low, high *big.Int) bool {
-	return (low.Cmp(ID.Value) == 0 && low.Cmp(high) != 0) || ID.In(low, high)
-}
-
-func (ID *Identifier) InRightClose(low, high *big.Int) bool {
-	if low.Cmp(high) != -1 {
-		return false
-	}
-	return (high.Cmp(ID.Value) == 0 && low.Cmp(high) != 0) || ID.In(low, high)
-}
-
-func (ID *Identifier) Copy(rhs *Identifier) {
-	ID = rhs
-}
-
-func GenerateId(str string) Identifier {
-	var Id Identifier
-	Id.Value = CalHash(str)
-	return Id
+	return low.Cmp(target) < 0 || high.Cmp(target) > 0
 }
 
 func CalHash(str string) *big.Int {
@@ -102,30 +86,3 @@ func PlusTwoPower(raw *big.Int, exp int) *big.Int {
 	ans = new(big.Int).Mod(ans, Mod)
 	return ans
 }
-
-//----------------------
-//type Address struct {
-//	Id   *Identifier
-//	Addr string
-//}
-
-//func (ptr *Address) isNil() bool {
-//	return ptr.Addr == ""
-//}
-//
-//func (ptr *Address) clear() {
-//	ptr.Addr = ""
-//	ptr.Id.Value = nil
-//}
-//
-//// Copy operator "="
-//func (ptr *Address) Copy(rhs *Address) {
-//	ptr.Addr = rhs.Addr
-//	ptr.Id.Copy(rhs.Id)
-//}
-//
-//func GenerateAddress(addr string) (reply Address) {
-//	reply.Addr = addr
-//	reply.Id = CalHash(addr)
-//	return
-//}

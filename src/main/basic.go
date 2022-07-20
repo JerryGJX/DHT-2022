@@ -103,13 +103,14 @@ func basicTest() (bool, int, int) {
 
 				//test
 			}
+
+			//for _, u := range nodesInNetwork {
+			//	fmt.Printf("%d ", nodes[u].DataSize())
+			//}
+			//fmt.Println()
+
 		}
 		put1Info.finish(&basicFailedCnt, &basicTotalCnt)
-
-		for _, u := range nodesInNetwork {
-			fmt.Printf("%d ", nodes[u].DataSize())
-		}
-		fmt.Println()
 
 		/* Get, part 1. */
 		get1Info := testInfo{
@@ -120,11 +121,11 @@ func basicTest() (bool, int, int) {
 		_, _ = cyan.Printf("Start getting (round %d, part 1)\n", t)
 		get1Cnt := 0
 
-		for i := 0; i <= basicTestNodeSize; i++ {
-			print(nodes[i].DataSize(), " ")
-		}
-		println("")
-		print("After print size\n")
+		//for i := 0; i <= basicTestNodeSize; i++ {
+		//	print(nodes[i].DataSize(), " ")
+		//}
+		//println("")
+		//print("After print size\n")
 
 		for key, value := range kvMap {
 
