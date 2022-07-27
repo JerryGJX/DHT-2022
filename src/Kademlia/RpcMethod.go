@@ -10,7 +10,7 @@ type RpcNode struct {
 
 type FindNodeArg struct {
 	Requester AddrType
-	Target    big.Int
+	Target    *big.Int
 }
 
 type FindNodeRep struct {
@@ -60,7 +60,7 @@ type FindValueRep struct {
 }
 
 func (ptr *RpcNode) FindValue(input FindValueArg, result *FindValueRep) error {
-	result.Content = ptr.node.table.FindClosest(*CalHash(input.Key), K)
+	result.Content = ptr.node.table.FindClosest(CalHash(input.Key), K)
 	result.Requester = input.Requester
 	result.Replier = ptr.node.addr
 	result.IsFind, result.Value = ptr.node.data.get(input.Key)

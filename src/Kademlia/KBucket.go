@@ -35,7 +35,7 @@ func (ptr *RoutingTable) Update(contact *AddrType) {
 
 	createLog(ptr.nodeAddr.Ip,"RoutingTable.Update","PrefixLen","Waring","after get bucket")
 	
-	bucket := ptr.buckets[PrefixLen(Xor(&(ptr.nodeAddr.Id), &(contact.Id)))]
+	bucket := ptr.buckets[PrefixLen(Xor(ptr.nodeAddr.Id, contact.Id))]
 	
 	
 	target := bucket.Front()
@@ -70,30 +70,29 @@ func (ptr *RoutingTable) Update(contact *AddrType) {
 	ptr.rwLock.Unlock()
 }
 
-func (ptr *RoutingTable) FindClosest(targetID big.Int, count int) []ContactRecord {
+func (ptr *RoutingTable) FindClosest(targetID *big.Int, count int) []ContactRecord {
 	result := make([]ContactRecord, 0, count)
-	index := PrefixLen(Xor(&(ptr.nodeAddr.Id), &targetID))
+	index := PrefixLen(Xor(ptr.nodeAddr.Id, targetID))
 	ptr.rwLock.RLock()
-	if targetID.Cmp(&(ptr.nodeAddr.Id)) == 0 {
-		result = append(result, ContactRecord{*Xor(&targetID, &targetID), GenerateAddr(ptr.nodeAddr.Ip)})
+	if targetID.Cmp(ptr.nodeAddr.Id) == 0 {
+		result = append(result, ContactRecord{Xor(targetID, targetID), GenerateAddr(ptr.nodeAddr.Ip)})
 	}
 	for i := ptr.buckets[index].Front(); i != nil && len(result) < count; i = i.Next() {
 		contact := i.Value.(*AddrType)
-		result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
+		result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
 	}
-	println("fuck1")
 
 	for i := 1; (index-i >= 0 || index+i < IDlength) && len(result) < count; i++ {
 		if index-i >= 0 {
 			for j := ptr.buckets[index-i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
-				result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
+				result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
 			}
 		}
 		if index+i < IDlength {
 			for j := ptr.buckets[index+i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
-				result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
+				result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
 			}
 		}
 	}

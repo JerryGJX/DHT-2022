@@ -8,9 +8,6 @@ import (
 	"sort"
 )
 
-var (
-	base *big.Int
-)
 
 func GetLocalIP() string {
 	var localaddress string
@@ -54,7 +51,7 @@ func createLog(addr string, callFuncName string, funcName string, logType string
 
 func SliceSort(dataSet *[]ContactRecord) {
 	sort.Slice(*dataSet, func(i, j int) bool {
-		return (*dataSet)[i].SortKey.Cmp(&(*dataSet)[j].SortKey) < 0
+		return (*dataSet)[i].SortKey.Cmp((*dataSet)[j].SortKey) < 0
 	})
 }
 
@@ -62,12 +59,12 @@ func SliceSort(dataSet *[]ContactRecord) {
 
 type AddrType struct {
 	Ip string
-	Id big.Int
+	Id *big.Int
 }
 
 func GenerateAddr(addr string) (result AddrType) {
 	result.Ip = addr
-	result.Id = *CalHash(addr)
+	result.Id = CalHash(addr)
 	return
 }
 
@@ -78,21 +75,21 @@ func CalHash(str string) (result *big.Int) {
 }
 
 func CalNodeId(origin AddrType, adder int64) (result AddrType) {
-	result.Id.Add(&(origin.Id), big.NewInt(adder))
+	result.Id.Add(origin.Id, big.NewInt(adder))
 	return result
 }
 
 func (node *AddrType) Equals(other AddrType) bool {
-	return node.Id.Cmp(&(other.Id)) == 0
+	return node.Id.Cmp(other.Id) == 0
 }
 
 func (node *AddrType) Copy(other AddrType) {
 	node.Ip = other.Ip
-	node.Id = *CalHash(other.Ip)
+	node.Id = CalHash(other.Ip)
 }
 
 func (node *AddrType) Less(other AddrType) bool {
-	return node.Id.Cmp(&(other.Id)) < 0
+	return node.Id.Cmp(other.Id) < 0
 }
 
 func Xor(node, other *big.Int) (result *big.Int) {

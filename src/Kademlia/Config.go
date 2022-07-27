@@ -25,6 +25,6 @@ const backgroundInterval1 time.Duration = 5 * time.Second
 const backgroundInterval2 time.Duration = 10 * time.Minute
 
 type ContactRecord struct {
-	SortKey     big.Int
+	SortKey     *big.Int
 	ContactInfo AddrType
 }

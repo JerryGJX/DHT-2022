@@ -2,7 +2,7 @@ package Kademlia
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	
 	"sync/atomic"
 	"time"
 )
@@ -92,7 +92,7 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 				if err != nil {
 					atomic.AddInt32(inRun, -1)
 					createLog(ptr.addr.Ip, "Node.FindClosestNode", "FindNode", "Error", err.Error())
-					//log.Warnln("<FindClosestNode> Fail due to  ", err)
+				
 					return
 				}
 				channel <- response
@@ -106,14 +106,14 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 			select {
 			case response := <-ch:
 				atomic.AddInt32(inRun, -1)
-				resultList = append(resultList, ContactRecord{*Xor(&(response.Replier.Id), &(target.Id)), response.Replier})
+				resultList = append(resultList, ContactRecord{Xor(response.Replier.Id, target.Id), response.Replier})
 				for _, v := range response.Content {
 					pendingList = append(pendingList, v)
 				}
 				SliceSort(&pendingList)
 			case <-time.After(WaitTime):
 				createLog(ptr.addr.Ip, "Node.FindClosestNode", "default", "Waring", "Avoid Blocking...")
-				//log.Infoln("<FindClosestNode> Avoid Blocking...")
+		
 			}
 		}
 		for index < len(pendingList) && *inRun < alpha {
@@ -176,9 +176,8 @@ func (ptr *Node) RangePut(request StoreArg) {
 				node := GenerateWrapNode(ptr, targetNode.Ip)
 				err := node.Store(&input)
 				if err != nil {
-					createLog(ptr.addr.Ip, "Node.angePut", "default", "Error", "fail to put"+err.Error())
+					createLog(ptr.addr.Ip, "Node.RangePut", "default", "Error", "fail to put"+err.Error())
 
-					//log.Warningln("<RangePut> Fail to Put ")
 				}
 				atomic.AddInt32(count, -1)
 			}(request, &target)
@@ -193,7 +192,7 @@ func (ptr *Node) Get(key string) (bool, string) {
 	reply := ""
 	requestInfo := FindValueArg{key, ptr.addr}
 	resultList := make([]AddrType, 0, K*2)
-	pendingList := ptr.table.FindClosest(*CalHash(key), K)
+	pendingList := ptr.table.FindClosest(CalHash(key), K)
 	inRun := new(int32)
 	*inRun = 0
 	visit := make(map[string]bool)
@@ -211,7 +210,6 @@ func (ptr *Node) Get(key string) (bool, string) {
 				err := node.FindValue(&requestInfo, &response)
 				if err != nil {
 					atomic.AddInt32(inRun, -1)
-					//log.Warnln("<Get> Fail due to  ", err)
 					return
 				}
 				channel <- response
@@ -278,7 +276,7 @@ func (ptr *Node) Get(key string) (bool, string) {
 					node := GenerateWrapNode(ptr, targetNode.Ip)
 					err := node.Store(&input)
 					if err != nil {
-						log.Warningln("<RangePut> Fail to Put ")
+						// log.Warningln("<RangePut> Fail to Put ")
 					}
 					atomic.AddInt32(count, -1)
 				}(StoreInfo, &target)

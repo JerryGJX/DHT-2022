@@ -101,7 +101,7 @@ func (ptr *database) clearExpire() {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for key, _ := range tmp {
+	for key:= range tmp {
 		delete(ptr.storage, key)
 		delete(ptr.expireTime, key)
 		delete(ptr.duplicateTime, key)
@@ -121,7 +121,7 @@ func (ptr *database) duplicate() (result map[string]string) {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for key, _ := range result {
+	for key:= range result {
 		ptr.duplicateTime[key] = time.Now().Add(tDuplicate)
 	}
 	ptr.rwLock.Unlock()
@@ -138,7 +138,7 @@ func (ptr *database) republic() (result map[string]string) {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for k, _ := range result {
+	for k:= range result {
 		ptr.republishTime[k] = time.Now().Add(tRepublish)
 	}
 	ptr.rwLock.Unlock()

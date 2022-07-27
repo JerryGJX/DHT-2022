@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const tryTime int = 5
-
 type network struct {
 	serv       *rpc.Server
 	lis        net.Listener
@@ -58,7 +56,7 @@ func GenerateClient(address string) (*rpc.Client, error) {
 		client *rpc.Client
 	)
 	ch := make(chan error)
-	for i := 0; i < tryTime; i++ {
+	for i := 0; i < tryTimes; i++ {
 		go func() {
 			client, err = rpc.Dial("tcp", address)
 			ch <- err
