@@ -15,22 +15,29 @@ type RoutingTable struct {
 	refreshTimeSet [IDlength]time.Time
 }
 
-func (this *RoutingTable) InitRoutingTable(nodeAddr AddrType) {
-	this.nodeAddr = nodeAddr
-	this.rwLock.Lock()
+func (ptr *RoutingTable) InitRoutingTable(nodeAddr AddrType) {
+	ptr.nodeAddr = nodeAddr
+	ptr.rwLock.Lock()
 	for i := 0; i < IDlength; i++ {
-		this.buckets[i] = list.New()
-		this.refreshTimeSet[i] = time.Now()
+		ptr.buckets[i] = list.New()
+		ptr.refreshTimeSet[i] = time.Now()
 	}
-	this.refreshIndex = 0
-	this.rwLock.Unlock()
+	ptr.refreshIndex = 0
+	ptr.rwLock.Unlock()
 }
 
 // Update  used when replier node is called and requester call successfully
-func (this *RoutingTable) Update(contact *AddrType) {
+func (ptr *RoutingTable) Update(contact *AddrType) {
+	createLog(ptr.nodeAddr.Ip,"RoutingTable.Update","PrefixLen1","Waring","after get bucket")
+
 	//log.Infoln("<Update> Update ",contact.Address)
-	this.rwLock.RLock()
-	bucket := this.buckets[PrefixLen(Xor(&(this.nodeAddr.Id), &(contact.Id)))]
+	ptr.rwLock.RLock()
+
+	createLog(ptr.nodeAddr.Ip,"RoutingTable.Update","PrefixLen","Waring","after get bucket")
+	
+	bucket := ptr.buckets[PrefixLen(Xor(&(ptr.nodeAddr.Id), &(contact.Id)))]
+	
+	
 	target := bucket.Front()
 	target = nil
 	for i := bucket.Front(); ; i = i.Next() {
@@ -43,8 +50,8 @@ func (this *RoutingTable) Update(contact *AddrType) {
 			break
 		}
 	}
-	this.rwLock.RUnlock()
-	this.rwLock.Lock()
+	ptr.rwLock.RUnlock()
+	ptr.rwLock.Lock()
 	if target != nil {
 		bucket.MoveToBack(target)
 	} else {
@@ -60,34 +67,36 @@ func (this *RoutingTable) Update(contact *AddrType) {
 			}
 		}
 	}
-	this.rwLock.Unlock()
+	ptr.rwLock.Unlock()
 }
 
-func (this *RoutingTable) FindClosest(targetID big.Int, count int) []ContactRecord {
+func (ptr *RoutingTable) FindClosest(targetID big.Int, count int) []ContactRecord {
 	result := make([]ContactRecord, 0, count)
-	index := PrefixLen(Xor(&(this.nodeAddr.Id), &targetID))
-	this.rwLock.RLock()
-	if targetID.Cmp(&(this.nodeAddr.Id)) == 0 {
-		result = append(result, ContactRecord{*Xor(&targetID, &targetID), GenerateAddr(this.nodeAddr.Ip)})
+	index := PrefixLen(Xor(&(ptr.nodeAddr.Id), &targetID))
+	ptr.rwLock.RLock()
+	if targetID.Cmp(&(ptr.nodeAddr.Id)) == 0 {
+		result = append(result, ContactRecord{*Xor(&targetID, &targetID), GenerateAddr(ptr.nodeAddr.Ip)})
 	}
-	for i := this.buckets[index].Front(); i != nil && len(result) < count; i = i.Next() {
+	for i := ptr.buckets[index].Front(); i != nil && len(result) < count; i = i.Next() {
 		contact := i.Value.(*AddrType)
 		result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
 	}
-	for i := 1; (index-i >= 0 || index+i < IDlength*8) && len(result) < count; i++ {
+	println("fuck1")
+
+	for i := 1; (index-i >= 0 || index+i < IDlength) && len(result) < count; i++ {
 		if index-i >= 0 {
-			for j := this.buckets[index-i].Front(); j != nil && len(result) < count; j = j.Next() {
+			for j := ptr.buckets[index-i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
 				result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
 			}
 		}
 		if index+i < IDlength {
-			for j := this.buckets[index+i].Front(); j != nil && len(result) < count; j = j.Next() {
+			for j := ptr.buckets[index+i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
 				result = append(result, ContactRecord{*Xor(&targetID, &(contact.Id)), *contact})
 			}
 		}
 	}
-	this.rwLock.RUnlock()
+	ptr.rwLock.RUnlock()
 	return result
 }

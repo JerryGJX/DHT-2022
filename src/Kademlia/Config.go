@@ -10,7 +10,9 @@ const IDlength int = 160 // bytes
 const K int = 20 // buckets size
 const alpha int32 = 3
 const tryTimes int = 4
-const localAddress string = "127.0.0.1"
+
+var localAddress string = GetLocalIP()
+
 const WaitTime time.Duration = 250 * time.Millisecond // with use of select
 const SleepTime time.Duration = 20 * time.Millisecond // avoiding endless for loop
 const refreshTimeInterval time.Duration = 30 * time.Second

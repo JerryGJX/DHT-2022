@@ -55,8 +55,8 @@ func init() {
 		DisableLevelTruncation: true,
 	}})
 
-	rand.Seed(time.Now().UnixNano())
-	//rand.Seed(0)
+	// rand.Seed(time.Now().UnixNano())
+	rand.Seed(0)
 }
 
 func main() {

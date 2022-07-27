@@ -19,7 +19,7 @@ type FindNodeRep struct {
 	Content   []ContactRecord
 }
 
-func (ptr *RpcNode) GetClose(arg FindNodeArg, result *FindNodeRep) error {
+func (ptr *RpcNode) FindNode(arg FindNodeArg, result *FindNodeRep) error {
 	result.Content = ptr.node.table.FindClosest(arg.Target, K)
 	result.Requester = arg.Requester
 	result.Replier = ptr.node.addr

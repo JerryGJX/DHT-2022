@@ -82,23 +82,28 @@ func CalNodeId(origin AddrType, adder int64) (result AddrType) {
 	return result
 }
 
-func (node AddrType) Equals(other AddrType) bool {
+func (node *AddrType) Equals(other AddrType) bool {
 	return node.Id.Cmp(&(other.Id)) == 0
 }
 
-func (node AddrType) Copy(other AddrType) {
+func (node *AddrType) Copy(other AddrType) {
 	node.Ip = other.Ip
 	node.Id = *CalHash(other.Ip)
 }
 
-func (node AddrType) Less(other AddrType) bool {
+func (node *AddrType) Less(other AddrType) bool {
 	return node.Id.Cmp(&(other.Id)) < 0
 }
 
 func Xor(node, other *big.Int) (result *big.Int) {
-	return Xor(node, other)
+	result=new(big.Int)
+	return result.Xor(node, other)
 }
 
 func PrefixLen(Id *big.Int) int {
-	return Id.BitLen()
+	if Id.BitLen()-1==-1{
+		return 0
+	}
+	return Id.BitLen()-1
+	 
 }

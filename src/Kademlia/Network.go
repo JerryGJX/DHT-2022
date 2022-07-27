@@ -89,7 +89,9 @@ func PingAndCheckOnline(self *Node, addr *AddrType) bool {
 }
 
 func IfOnline(address string) bool {
+// println("fuck1")
 	client, err := GenerateClient(address)
+	// defer println("fuck2")
 	if err != nil {
 		createLog(address, "network.IfOnline", "network.GenerateClient", "Error", err.Error())
 		return false
@@ -121,7 +123,7 @@ func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args int
 	err2 := client.Call(serviceMethod, args, reply)
 	//createLog(targetAddr, "network.RemoteCall", "client.Call", "Info", "after call")
 	if err2 != nil {
-		createLog(targetAddr.Ip, "network.RemoteCall", "client.Call"+serviceMethod, "Error", err2.Error())
+		createLog(targetAddr.Ip, "network.RemoteCall", "client.Call   "+serviceMethod, "Error", err2.Error())
 	}
 	return err2
 }
@@ -129,6 +131,7 @@ func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args int
 func WrappedAccept(server *rpc.Server, lis net.Listener, ptr *Node) {
 	for {
 		conn, err := lis.Accept()
+		// println("fuck")
 		select {
 		case <-ptr.station.quitSignal:
 			return
