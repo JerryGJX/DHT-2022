@@ -20,6 +20,9 @@ type FindNodeRep struct {
 }
 
 func (ptr *RpcNode) FindNode(arg FindNodeArg, result *FindNodeRep) error {
+	// if !IfOnline(arg.Requester.Ip){
+	// 	return errors.New("requester offline")
+	// }
 	result.Content = ptr.node.table.FindClosest(arg.Target, K)
 	result.Requester = arg.Requester
 	result.Replier = ptr.node.addr

@@ -1,5 +1,6 @@
 package Kademlia
 
+
 type WrapNode struct {
 	nodePtr     *Node
 	callAddress AddrType
@@ -18,6 +19,10 @@ func (ptr *WrapNode) Store(arg *StoreArg) error {
 }
 
 func (ptr *WrapNode) FindNode(arg *FindNodeArg, rep *FindNodeRep) error {
+	// if !IfOnline(arg.Requester.Ip){
+	// 	return errors.New("requester offline")
+	// }
+
 	return RemoteCall(ptr.nodePtr, &(ptr.callAddress), "RpcNode.FindNode", *arg, rep)
 }
 

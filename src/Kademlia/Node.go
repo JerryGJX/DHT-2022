@@ -61,8 +61,11 @@ func (ptr *Node) Join(address string) bool {
 }
 
 func (ptr *Node) Quit() {
+	// println("fuck1")
 	_ = ptr.station.ShutDown()
+	// println("fuck2")
 	ptr.reset()
+	// println("fuck3")
 	createLog(ptr.addr.Ip, "Node.Quit", "default", "Info", "")
 }
 
@@ -92,7 +95,6 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 				if err != nil {
 					atomic.AddInt32(inRun, -1)
 					createLog(ptr.addr.Ip, "Node.FindClosestNode", "FindNode", "Error", err.Error())
-				
 					return
 				}
 				channel <- response
@@ -113,7 +115,6 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 				SliceSort(&pendingList)
 			case <-time.After(WaitTime):
 				createLog(ptr.addr.Ip, "Node.FindClosestNode", "default", "Waring", "Avoid Blocking...")
-		
 			}
 		}
 		for index < len(pendingList) && *inRun < alpha {

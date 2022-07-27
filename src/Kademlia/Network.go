@@ -5,7 +5,6 @@ import (
 	//log "github.com/sirupsen/logrus"
 	"net"
 	"net/rpc"
-	"time"
 )
 
 type network struct {
@@ -19,6 +18,7 @@ func (n *network) Init(address string, ptr *Node) error {
 	n.serv = rpc.NewServer()
 	n.nodePtr = new(RpcNode)
 	n.nodePtr.node = ptr
+	n.quitSignal = make(chan bool, 2)
 	//注册rpc服务
 	err := n.serv.Register(n.nodePtr)
 	if err != nil {
@@ -36,8 +36,11 @@ func (n *network) Init(address string, ptr *Node) error {
 }
 
 func (n *network) ShutDown() error {
+	// println("fuck21")
 	n.quitSignal <- true
+	// println("fuck22")
 	err := n.lis.Close()
+	// println("fuck23")
 	if err != nil {
 		createLog(n.nodePtr.node.addr.Ip, "network.ShutDown", "Listener.Close", "Error", err.Error())
 		return err
@@ -51,29 +54,36 @@ func GenerateClient(address string) (*rpc.Client, error) {
 		createLog(address, "network.GenerateClient", "default", "Error", "self off line")
 		return nil, errors.New("<GetClient> IP address is nil")
 	}
-	var (
-		err    error
-		client *rpc.Client
-	)
-	ch := make(chan error)
+	
+	// ch := make(chan error)
 	for i := 0; i < tryTimes; i++ {
-		go func() {
-			client, err = rpc.Dial("tcp", address)
-			ch <- err
-		}()
-		select {
-		case <-ch:
-			if err == nil {
-				return client, nil
-			} else {
-				return nil, err
-			}
-		case <-time.After(WaitTime):
-			err = errors.New("timeout")
-			createLog(address, "network.GenerateClient", "rpc.Dial", "Error", err.Error())
+
+		conn, err := net.DialTimeout("tcp", address, WaitTime)
+		if err != nil {
+			return nil, err
 		}
+		client := rpc.NewClient(conn)
+		return client, err
+
+
+
+		// go func() {
+		// 	client, err = rpc.Dial("tcp", address)
+		// 	ch <- err
+		// }()
+		// select {
+		// case <-ch:
+		// 	if err == nil {
+		// 		return client, nil
+		// 	} else {
+		// 		return nil, err
+		// 	}
+		// case <-time.After(WaitTime):
+		// 	err = errors.New("timeout")
+		// 	createLog(address, "network.GenerateClient", "rpc.Dial", "Error", err.Error())
+		// }
 	}
-	return nil, err
+	return nil, errors.New("timeout")
 }
 
 func PingAndCheckOnline(self *Node, addr *AddrType) bool {
@@ -118,6 +128,11 @@ func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args int
 		self.table.Update(targetAddr)
 		defer client.Close()
 	}
+
+	if client==nil{
+		createLog(targetAddr.Ip, "network.RemoteCall", "network.CheckClient", "Error", "client is nil")
+	}
+
 	err2 := client.Call(serviceMethod, args, reply)
 	//createLog(targetAddr, "network.RemoteCall", "client.Call", "Info", "after call")
 	if err2 != nil {

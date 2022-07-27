@@ -16,8 +16,8 @@ type RoutingTable struct {
 }
 
 func (ptr *RoutingTable) InitRoutingTable(nodeAddr AddrType) {
-	ptr.nodeAddr = nodeAddr
 	ptr.rwLock.Lock()
+	ptr.nodeAddr = nodeAddr
 	for i := 0; i < IDlength; i++ {
 		ptr.buckets[i] = list.New()
 		ptr.refreshTimeSet[i] = time.Now()
