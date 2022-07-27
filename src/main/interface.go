@@ -32,5 +32,5 @@ type dhtNode interface {
 	Delete(key string) bool            /* Remove the key-value pair represented by KEY from the network. */
 	/* Return "true" if remove successfully, "false" otherwise. */
 
-	DataSize() int
+	//DataSize() int
 }
