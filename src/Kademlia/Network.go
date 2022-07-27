@@ -103,24 +103,25 @@ func IfOnline(address string) bool {
 	return true
 }
 
-func RemoteCall(self *Node, targetAddr string, serviceMethod string, args interface{}, reply interface{}) error {
-	if targetAddr == "" {
+func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args interface{}, reply interface{}) error {
+	if targetAddr.Ip == "" {
 		return errors.New("null address for RemoteCall")
 	}
 
-	client, err := GenerateClient(targetAddr)
+	client, err := GenerateClient(targetAddr.Ip)
 	if err != nil {
-		createLog(targetAddr, "network.RemoteCall", "network.GenerateClient", "Error", err.Error())
+		createLog(targetAddr.Ip, "network.RemoteCall", "network.GenerateClient", "Error", err.Error())
 		return err
 	}
-	createLog(targetAddr, "network.RemoteCall", "network.GenerateClient", "Info", "after GenerateClient")
+	createLog(targetAddr.Ip, "network.RemoteCall", "network.GenerateClient", "Info", "after GenerateClient")
 	if client != nil {
+		self.table.Update(targetAddr)
 		defer client.Close()
 	}
 	err2 := client.Call(serviceMethod, args, reply)
 	//createLog(targetAddr, "network.RemoteCall", "client.Call", "Info", "after call")
 	if err2 != nil {
-		createLog(targetAddr, "network.RemoteCall", "client.Call", "Error", err2.Error())
+		createLog(targetAddr.Ip, "network.RemoteCall", "client.Call"+serviceMethod, "Error", err2.Error())
 	}
 	return err2
 }
