@@ -78,7 +78,9 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 			atomic.AddInt32(inRun, 1)
 			go func(Replier *AddrType, channel chan FindNodeRep) {
 				var response FindNodeRep
-				err := RemoteCall(ptr, Replier.Ip, "WrapNode.GetClose", FindNodeArg{ptr.addr, target.Id}, &response)
+				node :=GenerateWrapNode(ptr,Replier.Ip)
+				err:=node.FindNode(&FindNodeArg{ptr.addr, target.Id}, &response)
+				
 				if err != nil {
 					atomic.AddInt32(inRun, -1)
 					createLog(ptr.addr.Ip, "Node.FindClosestNode", "default", "Error", err.Error())
@@ -113,7 +115,8 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 				atomic.AddInt32(inRun, 1)
 				go func(Replier *AddrType, channel chan FindNodeRep) {
 					var response FindNodeRep
-					err := RemoteCall(ptr, Replier.Ip, "WrapNode.GetClose", FindNodeArg{ptr.addr, target.Id}, &response)
+					node:=GenerateWrapNode(ptr, Replier.Ip)
+					err:=node.FindNode( &FindNodeArg{ptr.addr, target.Id}, &response)
 					if err != nil {
 						atomic.AddInt32(inRun, -1)
 						createLog(ptr.addr.Ip, "Node.FindClosestNode", "default", "Error", err.Error())
@@ -162,8 +165,8 @@ func (ptr *Node) RangePut(request StoreArg) {
 			index++
 			atomic.AddInt32(count, 1)
 			go func(input StoreArg, targetNode *AddrType) {
-				var occupy string
-				err := RemoteCall(ptr, targetNode.Ip, "WrapNode.Store", input, &occupy)
+				node:=GenerateWrapNode(ptr, targetNode.Ip)
+				err:=node.Store(&input)
 				if err != nil {
 					createLog(ptr.addr.Ip, "Node.angePut", "default", "Error", "fail to put"+err.Error())
 
@@ -196,7 +199,8 @@ func (ptr *Node) Get(key string) (bool, string) {
 			atomic.AddInt32(inRun, 1)
 			go func(Replier *AddrType, channel chan FindValueRep) {
 				var response FindValueRep
-				err := RemoteCall(ptr, Replier.Ip, "WrapNode.FindValue", requestInfo, &response)
+				node:=GenerateWrapNode(ptr, Replier.Ip)
+				err:=node.FindValue(&requestInfo, &response)
 				if err != nil {
 					atomic.AddInt32(inRun, -1)
 					//log.Warnln("<Get> Fail due to  ", err)
@@ -237,7 +241,8 @@ func (ptr *Node) Get(key string) (bool, string) {
 				atomic.AddInt32(inRun, 1)
 				go func(Replier *AddrType, channel chan FindValueRep) {
 					var response FindValueRep
-					err := RemoteCall(ptr, Replier.Ip, "WrapNode.FindValue", requestInfo, &response)
+					node :=GenerateWrapNode(ptr, Replier.Ip)
+					err:=node.FindValue( &requestInfo, &response)
 					if err != nil {
 						atomic.AddInt32(inRun, -1)
 						//log.Warnln("<Get> Fail due to  ", err)
@@ -262,8 +267,8 @@ func (ptr *Node) Get(key string) (bool, string) {
 				i++
 				atomic.AddInt32(count, 1)
 				go func(input StoreArg, targetNode *AddrType) {
-					var occupy string
-					err := RemoteCall(ptr, targetNode.Ip, "WrapNode.Store", input, &occupy)
+					node:=GenerateWrapNode(ptr, targetNode.Ip)
+					err:=node.Store(&input)
 					if err != nil {
 						//log.Warningln("<RangePut> Fail to Put ")
 					}
