@@ -2,9 +2,10 @@ package Kademlia
 
 import (
 	"container/list"
-	"github.com/sasha-s/go-deadlock"
 	"math/big"
 	"time"
+
+	"github.com/sasha-s/go-deadlock"
 )
 
 type RoutingTable struct {
@@ -26,18 +27,15 @@ func (ptr *RoutingTable) InitRoutingTable(nodeAddr AddrType) {
 	ptr.rwLock.Unlock()
 }
 
-// Update  used when replier node is called and requester call successfully
 func (ptr *RoutingTable) Update(contact *AddrType) {
-	createLog(ptr.nodeAddr.Ip,"RoutingTable.Update","PrefixLen1","Waring","after get bucket")
+	createLog(ptr.nodeAddr.Ip, "RoutingTable.Update", "PrefixLen1", "Waring", "after get bucket")
 
-	//log.Infoln("<Update> Update ",contact.Address)
 	ptr.rwLock.RLock()
 
-	createLog(ptr.nodeAddr.Ip,"RoutingTable.Update","PrefixLen","Waring","after get bucket")
-	
+	createLog(ptr.nodeAddr.Ip, "RoutingTable.Update", "PrefixLen", "Waring", "after get bucket")
+
 	bucket := ptr.buckets[PrefixLen(Xor(ptr.nodeAddr.Id, contact.Id))]
-	
-	
+
 	target := bucket.Front()
 	target = nil
 	for i := bucket.Front(); ; i = i.Next() {
@@ -70,29 +68,29 @@ func (ptr *RoutingTable) Update(contact *AddrType) {
 	ptr.rwLock.Unlock()
 }
 
-func (ptr *RoutingTable) FindClosest(targetID *big.Int, count int) []ContactRecord {
-	result := make([]ContactRecord, 0, count)
+func (ptr *RoutingTable) FindClosest(targetID *big.Int, count int) []ClosestListNode {
+	result := make([]ClosestListNode, 0, count)
 	index := PrefixLen(Xor(ptr.nodeAddr.Id, targetID))
 	ptr.rwLock.RLock()
 	if targetID.Cmp(ptr.nodeAddr.Id) == 0 {
-		result = append(result, ContactRecord{Xor(targetID, targetID), GenerateAddr(ptr.nodeAddr.Ip)})
+		result = append(result, ClosestListNode{Xor(targetID, targetID), GenerateAddr(ptr.nodeAddr.Ip)})
 	}
 	for i := ptr.buckets[index].Front(); i != nil && len(result) < count; i = i.Next() {
 		contact := i.Value.(*AddrType)
-		result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
+		result = append(result, ClosestListNode{Xor(targetID, contact.Id), *contact})
 	}
 
 	for i := 1; (index-i >= 0 || index+i < IDlength) && len(result) < count; i++ {
 		if index-i >= 0 {
 			for j := ptr.buckets[index-i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
-				result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
+				result = append(result, ClosestListNode{Xor(targetID, contact.Id), *contact})
 			}
 		}
 		if index+i < IDlength {
 			for j := ptr.buckets[index+i].Front(); j != nil && len(result) < count; j = j.Next() {
 				contact := j.Value.(*AddrType)
-				result = append(result, ContactRecord{Xor(targetID, contact.Id), *contact})
+				result = append(result, ClosestListNode{Xor(targetID, contact.Id), *contact})
 			}
 		}
 	}

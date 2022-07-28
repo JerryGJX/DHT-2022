@@ -2,12 +2,12 @@ package Kademlia
 
 import (
 	"crypto/sha1"
-	log "github.com/sirupsen/logrus"
 	"math/big"
 	"net"
 	"sort"
-)
 
+	log "github.com/sirupsen/logrus"
+)
 
 func GetLocalIP() string {
 	var localaddress string
@@ -49,9 +49,9 @@ func createLog(addr string, callFuncName string, funcName string, logType string
 	}
 }
 
-func SliceSort(dataSet *[]ContactRecord) {
+func Sort(dataSet *[]ClosestListNode) {
 	sort.Slice(*dataSet, func(i, j int) bool {
-		return (*dataSet)[i].SortKey.Cmp((*dataSet)[j].SortKey) < 0
+		return (*dataSet)[i].Key.Cmp((*dataSet)[j].Key) < 0
 	})
 }
 
@@ -93,14 +93,14 @@ func (node *AddrType) Less(other AddrType) bool {
 }
 
 func Xor(node, other *big.Int) (result *big.Int) {
-	result=new(big.Int)
+	result = new(big.Int)
 	return result.Xor(node, other)
 }
 
 func PrefixLen(Id *big.Int) int {
-	if Id.BitLen()-1==-1{
+	if Id.BitLen()-1 == -1 {
 		return 0
 	}
-	return Id.BitLen()-1
-	 
+	return Id.BitLen() - 1
+
 }

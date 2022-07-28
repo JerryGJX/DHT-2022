@@ -13,18 +13,16 @@ const tryTimes int = 4
 
 var localAddress string = GetLocalIP()
 
-const WaitTime time.Duration = 250 * time.Millisecond // with use of select
-const SleepTime time.Duration = 20 * time.Millisecond // avoiding endless for loop
-const refreshTimeInterval time.Duration = 30 * time.Second
-const expireTimeInterval2 time.Duration = 6 * time.Hour
-const expireTimeInterval3 time.Duration = 20 * time.Minute
+const WaitTime time.Duration = 250 * time.Millisecond
+const SleepTime time.Duration = 20 * time.Millisecond
+const refreshTime time.Duration = 30 * time.Second
+const expireTimeHigh time.Duration = 6 * time.Hour
+const expireTimeLow time.Duration = 20 * time.Minute
 
-//const republicTimeInterval time.Duration = 5 * time.Hour
-//const duplicateTimeInterval time.Duration = 15 * time.Minute
-const backgroundInterval1 time.Duration = 5 * time.Second
-const backgroundInterval2 time.Duration = 10 * time.Minute
+const backgroundLow time.Duration = 5 * time.Second
+const backgroundHigh time.Duration = 10 * time.Minute
 
-type ContactRecord struct {
-	SortKey     *big.Int
-	ContactInfo AddrType
+type ClosestListNode struct {
+	Key  *big.Int
+	Addr AddrType
 }

@@ -1,9 +1,10 @@
 package Kademlia
 
 import (
+	"time"
+
 	"github.com/sasha-s/go-deadlock"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 	tDuplicate time.Duration = 15 * time.Minute
 )
 
-type database struct {
+type Datamanager struct {
 	rwLock        deadlock.RWMutex
 	storage       map[string]string
 	expireTime    map[string]time.Time
@@ -27,7 +28,7 @@ type database struct {
 	privilege     map[string]int
 }
 
-func (ptr *database) init() {
+func (ptr *Datamanager) init() {
 	ptr.storage = make(map[string]string)
 	ptr.expireTime = make(map[string]time.Time)
 	ptr.duplicateTime = make(map[string]time.Time)
@@ -35,63 +36,61 @@ func (ptr *database) init() {
 	ptr.privilege = make(map[string]int)
 }
 
-func (ptr *database) store(request StoreArg) {
+func (ptr *Datamanager) store(info StoreArg) {
 	ptr.rwLock.Lock()
 	defer ptr.rwLock.Unlock()
-	if _, ok := ptr.storage[request.Key]; !ok {
-		requestPri := request.RequesterPri
-		ptr.privilege[request.Key] = requestPri + 1
-		ptr.storage[request.Key] = request.Value
-		if requestPri == root {
-			ptr.republishTime[request.Key] = time.Now().Add(tRepublish)
+	if _, flag := ptr.storage[info.Key]; !flag {
+		reqPri := info.priType
+		ptr.privilege[info.Key] = reqPri + 1
+		ptr.storage[info.Key] = info.Value
+		if reqPri == root {
+			ptr.republishTime[info.Key] = time.Now().Add(tRepublish)
 			return
 		}
-		if requestPri == publisher {
-			ptr.duplicateTime[request.Key] = time.Now().Add(tDuplicate)
-			ptr.expireTime[request.Key] = time.Now().Add(expireTimeInterval2)
+		if reqPri == publisher {
+			ptr.duplicateTime[info.Key] = time.Now().Add(tDuplicate)
+			ptr.expireTime[info.Key] = time.Now().Add(expireTimeHigh)
 			return
 		}
-		if requestPri == duplicater {
-			ptr.expireTime[request.Key] = time.Now().Add(expireTimeInterval3)
+		if reqPri == duplicater {
+			ptr.expireTime[info.Key] = time.Now().Add(expireTimeLow)
 			return
 		}
 		log.Errorf("<database store> Wrong privilege1")
 	} else {
-		originPri := ptr.privilege[request.Key]
-		requestPri := request.RequesterPri
-		if originPri == publisher || requestPri >= originPri {
+		prePri := ptr.privilege[info.Key]
+		reqPri := info.priType
+		if prePri == publisher || reqPri >= prePri {
 			return
 		}
-		// duplicater->publisher || common->publisher || common->duplicater
-		if requestPri == root {
-			ptr.privilege[request.Key] = publisher
-			ptr.storage[request.Key] = request.Value
-			ptr.republishTime[request.Key] = time.Now().Add(tRepublish)
-			delete(ptr.expireTime, request.Key)
-			delete(ptr.duplicateTime, request.Key)
+		if reqPri == root {
+			ptr.privilege[info.Key] = publisher
+			ptr.storage[info.Key] = info.Value
+			ptr.republishTime[info.Key] = time.Now().Add(tRepublish)
+			delete(ptr.expireTime, info.Key)
+			delete(ptr.duplicateTime, info.Key)
 			return
 		}
-		if requestPri == publisher {
-			ptr.privilege[request.Key] = duplicater
-			ptr.storage[request.Key] = request.Value
-			ptr.expireTime[request.Key] = time.Now().Add(expireTimeInterval2)
-			ptr.duplicateTime[request.Key] = time.Now().Add(tDuplicate)
-			delete(ptr.republishTime, request.Key)
+		if reqPri == publisher {
+			ptr.privilege[info.Key] = duplicater
+			ptr.storage[info.Key] = info.Value
+			ptr.expireTime[info.Key] = time.Now().Add(expireTimeHigh)
+			ptr.duplicateTime[info.Key] = time.Now().Add(tDuplicate)
+			delete(ptr.republishTime, info.Key)
 			return
 		}
-		if requestPri == duplicater {
-			ptr.privilege[request.Key] = cacher
-			ptr.storage[request.Key] = request.Value
-			ptr.expireTime[request.Key] = time.Now().Add(expireTimeInterval3)
-			delete(ptr.duplicateTime, request.Key)
-			delete(ptr.republishTime, request.Key)
+		if reqPri == duplicater {
+			ptr.privilege[info.Key] = cacher
+			ptr.storage[info.Key] = info.Value
+			ptr.expireTime[info.Key] = time.Now().Add(expireTimeLow)
+			delete(ptr.duplicateTime, info.Key)
+			delete(ptr.republishTime, info.Key)
 			return
 		}
-		log.Errorf("<database store> Wrong privilege2")
 	}
 }
 
-func (ptr *database) clearExpire() {
+func (ptr *Datamanager) clearExpire() {
 	tmp := make(map[string]bool)
 	ptr.rwLock.RLock()
 	for key, value := range ptr.expireTime {
@@ -101,7 +100,7 @@ func (ptr *database) clearExpire() {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for key:= range tmp {
+	for key := range tmp {
 		delete(ptr.storage, key)
 		delete(ptr.expireTime, key)
 		delete(ptr.duplicateTime, key)
@@ -111,7 +110,7 @@ func (ptr *database) clearExpire() {
 	ptr.rwLock.Unlock()
 }
 
-func (ptr *database) duplicate() (result map[string]string) {
+func (ptr *Datamanager) duplicate() (result map[string]string) {
 	result = make(map[string]string)
 	ptr.rwLock.RLock()
 	for key, value := range ptr.duplicateTime {
@@ -121,14 +120,14 @@ func (ptr *database) duplicate() (result map[string]string) {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for key:= range result {
+	for key := range result {
 		ptr.duplicateTime[key] = time.Now().Add(tDuplicate)
 	}
 	ptr.rwLock.Unlock()
 	return
 }
 
-func (ptr *database) republic() (result map[string]string) {
+func (ptr *Datamanager) republish() (result map[string]string) {
 	result = make(map[string]string)
 	ptr.rwLock.RLock()
 	for k, v := range ptr.republishTime {
@@ -138,23 +137,23 @@ func (ptr *database) republic() (result map[string]string) {
 	}
 	ptr.rwLock.RUnlock()
 	ptr.rwLock.Lock()
-	for k:= range result {
+	for k := range result {
 		ptr.republishTime[k] = time.Now().Add(tRepublish)
 	}
 	ptr.rwLock.Unlock()
 	return
 }
 
-func (ptr *database) get(key string) (bool, string) {
+func (ptr *Datamanager) get(key string) (bool, string) {
 	ptr.rwLock.Lock()
 	defer ptr.rwLock.Unlock()
-	if v, ok := ptr.storage[key]; ok {
-		if _, ok2 := ptr.expireTime[key]; ok2 {
-			if !ptr.expireTime[key].After(time.Now().Add(expireTimeInterval3)) {
-				ptr.expireTime[key] = time.Now().Add(expireTimeInterval3)
+	if value, flag := ptr.storage[key]; flag {
+		if _, flag = ptr.expireTime[key]; flag {
+			if !ptr.expireTime[key].After(time.Now().Add(expireTimeLow)) {
+				ptr.expireTime[key] = time.Now().Add(expireTimeLow)
 			}
 		}
-		return true, v
+		return true, value
 	} else {
 		return false, ""
 	}

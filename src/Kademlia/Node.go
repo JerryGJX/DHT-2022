@@ -2,7 +2,7 @@ package Kademlia
 
 import (
 	"fmt"
-	
+
 	"sync/atomic"
 	"time"
 )
@@ -10,12 +10,12 @@ import (
 type Node struct {
 	station   *network
 	isRunning bool
-	data      database
+	data      Datamanager
 	table     RoutingTable
 	addr      AddrType
 }
 
-func (ptr *Node) reset() {
+func (ptr *Node) clear() {
 	ptr.isRunning = false
 	ptr.table.InitRoutingTable(ptr.addr)
 	ptr.data.init()
@@ -23,7 +23,7 @@ func (ptr *Node) reset() {
 
 func (ptr *Node) Init(port int) {
 	ptr.addr = GenerateAddr(fmt.Sprintf("%s:%d", localAddress, port))
-	ptr.reset()
+	ptr.clear()
 }
 
 func (ptr *Node) Run() {
@@ -52,7 +52,7 @@ func (ptr *Node) Join(address string) bool {
 
 	// println("fuck")
 
-	createLog(ptr.addr.Ip,"Node.Join","default","Waring","Before Update")
+	createLog(ptr.addr.Ip, "Node.Join", "default", "Waring", "Before Update")
 
 	ptr.table.Update(&tmp)
 	ptr.FindClosestNode(ptr.addr)
@@ -64,7 +64,7 @@ func (ptr *Node) Quit() {
 	// println("fuck1")
 	_ = ptr.station.ShutDown()
 	// println("fuck2")
-	ptr.reset()
+	ptr.clear()
 	// println("fuck3")
 	createLog(ptr.addr.Ip, "Node.Quit", "default", "Info", "")
 }
@@ -73,8 +73,8 @@ func (ptr *Node) Ping(requester string) bool {
 	return true
 }
 
-func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
-	resultList := make([]ContactRecord, 0, K*2)
+func (ptr *Node) FindClosestNode(target AddrType) []ClosestListNode {
+	resultList := make([]ClosestListNode, 0, K*2)
 	pendingList := ptr.table.FindClosest(target.Id, K)
 	inRun := new(int32)
 	*inRun = 0
@@ -83,7 +83,7 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 	index := 0
 	ch := make(chan FindNodeRep, alpha+3)
 	for index < len(pendingList) && *inRun < alpha {
-		tmpReplier := pendingList[index].ContactInfo
+		tmpReplier := pendingList[index].Addr
 		if _, ok := visit[tmpReplier.Ip]; !ok {
 			visit[tmpReplier.Ip] = true
 			atomic.AddInt32(inRun, 1)
@@ -108,17 +108,17 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 			select {
 			case response := <-ch:
 				atomic.AddInt32(inRun, -1)
-				resultList = append(resultList, ContactRecord{Xor(response.Replier.Id, target.Id), response.Replier})
-				for _, v := range response.Content {
-					pendingList = append(pendingList, v)
+				resultList = append(resultList, ClosestListNode{Xor(response.RepAddr.Id, target.Id), response.RepAddr})
+				for _, value := range response.Content {
+					pendingList = append(pendingList, value)
 				}
-				SliceSort(&pendingList)
+				Sort(&pendingList)
 			case <-time.After(WaitTime):
 				createLog(ptr.addr.Ip, "Node.FindClosestNode", "default", "Waring", "Avoid Blocking...")
 			}
 		}
 		for index < len(pendingList) && *inRun < alpha {
-			tmpReplier := pendingList[index].ContactInfo
+			tmpReplier := pendingList[index].Addr
 			if _, ok := visit[tmpReplier.Ip]; !ok {
 				visit[tmpReplier.Ip] = true
 				atomic.AddInt32(inRun, 1)
@@ -138,7 +138,7 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 			index++
 		}
 	}
-	SliceSort(&resultList)
+	Sort(&resultList)
 	if len(resultList) > K {
 		resultList = resultList[:K]
 	}
@@ -147,7 +147,7 @@ func (ptr *Node) FindClosestNode(target AddrType) []ContactRecord {
 
 func (ptr *Node) Refresh() {
 	lastRefreshTime := ptr.table.refreshTimeSet[ptr.table.refreshIndex]
-	if !lastRefreshTime.Add(refreshTimeInterval).After(time.Now()) {
+	if !lastRefreshTime.Add(refreshTime).After(time.Now()) {
 		tmpAddr := GenerateAddr(ptr.addr.Ip)
 		ptr.FindClosestNode(tmpAddr)
 		ptr.table.refreshTimeSet[ptr.table.refreshIndex] = time.Now()
@@ -158,7 +158,7 @@ func (ptr *Node) Refresh() {
 func (ptr *Node) Put(key string, value string) bool {
 	request := StoreArg{key, value, root, ptr.addr}
 	ptr.data.store(request)
-	request.RequesterPri = publisher
+	request.priType = publisher
 	ptr.RangePut(request)
 	createLog(ptr.addr.Ip, "Node.Put", "default", "Info", "")
 	return true
@@ -170,7 +170,7 @@ func (ptr *Node) RangePut(request StoreArg) {
 	*count = 0
 	for index := 0; index < len(pendingList); {
 		if *count < alpha {
-			target := pendingList[index].ContactInfo
+			target := pendingList[index].Addr
 			index++
 			atomic.AddInt32(count, 1)
 			go func(input StoreArg, targetNode *AddrType) {
@@ -189,7 +189,7 @@ func (ptr *Node) RangePut(request StoreArg) {
 }
 
 func (ptr *Node) Get(key string) (bool, string) {
-	isFind := false
+	ifFind := false
 	reply := ""
 	requestInfo := FindValueArg{key, ptr.addr}
 	resultList := make([]AddrType, 0, K*2)
@@ -201,7 +201,7 @@ func (ptr *Node) Get(key string) (bool, string) {
 	index := 0
 	ch := make(chan FindValueRep, alpha+3)
 	for index < len(pendingList) && *inRun < alpha {
-		tmpReplier := pendingList[index].ContactInfo
+		tmpReplier := pendingList[index].Addr
 		if _, ok := visit[tmpReplier.Ip]; !ok {
 			visit[tmpReplier.Ip] = true
 			atomic.AddInt32(inRun, 1)
@@ -219,30 +219,29 @@ func (ptr *Node) Get(key string) (bool, string) {
 		}
 		index++
 	}
-	for (index < len(pendingList) || *inRun > 0) && !isFind {
+	for (index < len(pendingList) || *inRun > 0) && !ifFind {
 		if *inRun > 0 {
 			select {
 			case response := <-ch:
 				atomic.AddInt32(inRun, -1)
-				if response.IsFind {
-					isFind = true
+				if response.IfFind {
+					ifFind = true
 					reply = response.Value
 					break
 				}
-				resultList = append(resultList, response.Replier)
-				for _, v := range response.Content {
-					pendingList = append(pendingList, v)
+				resultList = append(resultList, response.RepAddr)
+				for _, value := range response.Content {
+					pendingList = append(pendingList, value)
 				}
-				SliceSort(&pendingList) // efficiency
+				Sort(&pendingList)
 			case <-time.After(WaitTime):
-				//log.Infoln("<Get> Avoid Blocking...")
 			}
-			if isFind {
+			if ifFind {
 				break
 			}
 		}
-		for index < len(pendingList) && *inRun < alpha && !isFind {
-			tmpReplier := pendingList[index].ContactInfo
+		for index < len(pendingList) && *inRun < alpha && !ifFind {
+			tmpReplier := pendingList[index].Addr
 			if _, ok := visit[tmpReplier.Ip]; !ok {
 				visit[tmpReplier.Ip] = true
 				atomic.AddInt32(inRun, 1)
@@ -252,7 +251,6 @@ func (ptr *Node) Get(key string) (bool, string) {
 					err := node.FindValue(&requestInfo, &response)
 					if err != nil {
 						atomic.AddInt32(inRun, -1)
-						//log.Warnln("<Get> Fail due to  ", err)
 						return
 					}
 					channel <- response
@@ -262,7 +260,7 @@ func (ptr *Node) Get(key string) (bool, string) {
 			index++
 		}
 	}
-	if !isFind {
+	if !ifFind {
 		return false, ""
 	} else {
 		StoreInfo := StoreArg{key, reply, duplicater, ptr.addr}
@@ -277,7 +275,8 @@ func (ptr *Node) Get(key string) (bool, string) {
 					node := GenerateWrapNode(ptr, targetNode.Ip)
 					err := node.Store(&input)
 					if err != nil {
-						// log.Warningln("<RangePut> Fail to Put ")
+						createLog(ptr.addr.Ip, "Node.Get", "default", "Error", "fail to Get"+err.Error())
+
 					}
 					atomic.AddInt32(count, -1)
 				}(StoreInfo, &target)
@@ -290,7 +289,7 @@ func (ptr *Node) Get(key string) (bool, string) {
 }
 
 func (ptr *Node) Republic() {
-	pendingList := ptr.data.republic()
+	pendingList := ptr.data.republish()
 	for k, v := range pendingList {
 		request := StoreArg{k, v, publisher, ptr.addr}
 		ptr.RangePut(request)
@@ -313,25 +312,25 @@ func (ptr *Node) Background() {
 	go func() {
 		for ptr.isRunning {
 			ptr.Refresh()
-			time.Sleep(backgroundInterval1)
+			time.Sleep(backgroundLow)
 		}
 	}()
 	go func() {
 		for ptr.isRunning {
 			ptr.Duplicate()
-			time.Sleep(backgroundInterval2)
+			time.Sleep(backgroundHigh)
 		}
 	}()
 	go func() {
 		for ptr.isRunning {
 			ptr.Expire()
-			time.Sleep(backgroundInterval2)
+			time.Sleep(backgroundHigh)
 		}
 	}()
 	go func() {
 		for ptr.isRunning {
 			ptr.Republic()
-			time.Sleep(backgroundInterval2)
+			time.Sleep(backgroundHigh)
 		}
 	}()
 }
@@ -343,7 +342,7 @@ func (ptr *Node) Create() {
 
 func (ptr *Node) ForceQuit() {
 	_ = ptr.station.ShutDown()
-	ptr.reset()
+	ptr.clear()
 }
 
 func (ptr *Node) Delete(key string) bool {

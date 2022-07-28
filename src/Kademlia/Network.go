@@ -37,7 +37,7 @@ func (n *network) Init(address string, ptr *Node) error {
 
 func (n *network) ShutDown() error {
 	// println("fuck21")
-	n.quitSignal <- true
+	// n.quitSignal <- true
 	// println("fuck22")
 	err := n.lis.Close()
 	// println("fuck23")
@@ -54,7 +54,7 @@ func GenerateClient(address string) (*rpc.Client, error) {
 		createLog(address, "network.GenerateClient", "default", "Error", "self off line")
 		return nil, errors.New("<GetClient> IP address is nil")
 	}
-	
+
 	// ch := make(chan error)
 	for i := 0; i < tryTimes; i++ {
 
@@ -64,8 +64,6 @@ func GenerateClient(address string) (*rpc.Client, error) {
 		}
 		client := rpc.NewClient(conn)
 		return client, err
-
-
 
 		// go func() {
 		// 	client, err = rpc.Dial("tcp", address)
@@ -97,7 +95,7 @@ func PingAndCheckOnline(self *Node, addr *AddrType) bool {
 }
 
 func IfOnline(address string) bool {
-// println("fuck1")
+	// println("fuck1")
 	client, err := GenerateClient(address)
 	// defer println("fuck2")
 	if err != nil {
@@ -129,7 +127,7 @@ func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args int
 		defer client.Close()
 	}
 
-	if client==nil{
+	if client == nil {
 		createLog(targetAddr.Ip, "network.RemoteCall", "network.CheckClient", "Error", "client is nil")
 	}
 
@@ -144,7 +142,7 @@ func RemoteCall(self *Node, targetAddr *AddrType, serviceMethod string, args int
 func WrappedAccept(server *rpc.Server, lis net.Listener, ptr *Node) {
 	for {
 		conn, err := lis.Accept()
-		// println("fuck")
+		// println("fuck"
 		select {
 		case <-ptr.station.quitSignal:
 			return

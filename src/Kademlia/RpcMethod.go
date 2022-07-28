@@ -9,14 +9,34 @@ type RpcNode struct {
 }
 
 type FindNodeArg struct {
-	Requester AddrType
-	Target    *big.Int
+	ReqAddr AddrType
+	Target  *big.Int
 }
 
 type FindNodeRep struct {
-	Requester AddrType
-	Replier   AddrType
-	Content   []ContactRecord
+	ReqAddr AddrType
+	RepAddr AddrType
+	Content []ClosestListNode
+}
+
+type StoreArg struct {
+	Key     string
+	Value   string
+	priType int
+	ReqAddr AddrType
+}
+
+type FindValueArg struct {
+	Key     string
+	ReqAddr AddrType
+}
+
+type FindValueRep struct {
+	ReqAddr AddrType
+	RepAddr AddrType
+	Content []ClosestListNode
+	IfFind  bool
+	Value   string
 }
 
 func (ptr *RpcNode) FindNode(arg FindNodeArg, result *FindNodeRep) error {
@@ -24,9 +44,9 @@ func (ptr *RpcNode) FindNode(arg FindNodeArg, result *FindNodeRep) error {
 	// 	return errors.New("requester offline")
 	// }
 	result.Content = ptr.node.table.FindClosest(arg.Target, K)
-	result.Requester = arg.Requester
-	result.Replier = ptr.node.addr
-	ptr.node.table.Update(&arg.Requester)
+	result.ReqAddr = arg.ReqAddr
+	result.RepAddr = ptr.node.addr
+	ptr.node.table.Update(&arg.ReqAddr)
 	return nil
 }
 
@@ -36,37 +56,17 @@ func (ptr *RpcNode) Ping(requester AddrType, result *string) error {
 	return nil
 }
 
-type StoreArg struct {
-	Key          string
-	Value        string
-	RequesterPri int
-	Requester    AddrType
-}
-
 func (ptr *RpcNode) Store(arg StoreArg, result *string) error {
 	ptr.node.data.store(arg)
-	ptr.node.table.Update(&arg.Requester)
+	ptr.node.table.Update(&arg.ReqAddr)
 	return nil
-}
-
-type FindValueArg struct {
-	Key       string
-	Requester AddrType
-}
-
-type FindValueRep struct {
-	Requester AddrType
-	Replier   AddrType
-	Content   []ContactRecord
-	IsFind    bool
-	Value     string
 }
 
 func (ptr *RpcNode) FindValue(input FindValueArg, result *FindValueRep) error {
 	result.Content = ptr.node.table.FindClosest(CalHash(input.Key), K)
-	result.Requester = input.Requester
-	result.Replier = ptr.node.addr
-	result.IsFind, result.Value = ptr.node.data.get(input.Key)
-	ptr.node.table.Update(&input.Requester)
+	result.ReqAddr = input.ReqAddr
+	result.RepAddr = ptr.node.addr
+	result.IfFind, result.Value = ptr.node.data.get(input.Key)
+	ptr.node.table.Update(&input.ReqAddr)
 	return nil
 }
