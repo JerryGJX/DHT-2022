@@ -1,7 +1,7 @@
 package main
 
 import (
-	bitTorrent "app/src/bitTorrent"
+	bitTorrent "bitTorrent"
 )
 
 

@@ -1,11 +1,9 @@
 package bitTorrent
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	bencode "github.com/jackpal/bencode-go"
 )
 
 type KeyPiece [SHA1Len]byte
@@ -17,10 +15,10 @@ type DataPackage struct {
 }
 
 type KeyPackage struct {
-	size int
-	length int
+	size     int
+	length   int
 	infoHash [SHA1Len]byte
-	key []KeyPiece
+	key      []KeyPiece
 }
 
 func (this *KeyPackage) getKey(index int) string {
@@ -29,68 +27,6 @@ func (this *KeyPackage) getKey(index int) string {
 		ret[i] = this.key[index][i] ^ this.infoHash[i]
 	}
 	return fmt.Sprintf("%x", ret)
-}
-
-func UploadFileProcessing(filePath string, fileName string, seedPath string) (KeyPackage, DataPackage, string, string) {
-	dataPackage, length := makeDataPackage(filePath)
-
-	green.Println("Data Packaged Finish. Total Piece: ", dataPackage.size)
-
-	var pieces string
-
-	for i := 0; i < dataPackage.size; i++ {
-		piece, _ := PiecesHash(dataPackage.data[i], i)
-		pieces += fmt.Sprintf("%x", piece)
-	}
-
-	torrent := bencodeTorrent{
-		Announce: "",
-		Info: bencodeInfo{
-			Length: length,
-			Pieces: pieces,
-			PieceLength: PieceSize,
-			Name: fileName,
-		},
-	}
-
-	err := torrent.Save(seedPath + fileName + ".torrent")
-
-	if err != nil {
-		red.Println("Failed to Make Torrent File ", err.Error())
-	}
-
-	keyPackage := torrent.makeKeyPackage()
-
-	green.Println("Torrent Resolved Finish: ")
-	
-
-	var magnet string
-	fileIO, err := os.Create(seedPath + fileName + "-magnet.txt")
-	if err != nil {
-		red.Println("Failed to Save Magnet URL.")
-	} else {
-		magnet = MakeMagnet(fmt.Sprintf("%x", keyPackage.infoHash))
-		fileIO.Write([]byte(magnet))
-	}
-	writer := bytes.NewBufferString("")
-	err = bencode.Marshal(writer, torrent)
-
-	return keyPackage, dataPackage, magnet, writer.String()
-}
-
-func DownloadFileProcessing(seedPath string) (KeyPackage, string) {
-	torrent, err := Open(seedPath)
-
-	if err != nil {
-		red.Println("Torrent Open Failed in path: ", seedPath, err.Error())
-		return KeyPackage{}, ""
-	}
-
-	keyPackage := torrent.makeKeyPackage()
-
-	green.Println("Torrent Resolved Finish: ")
-
-	return keyPackage, torrent.Info.Name
 }
 
 func makeDataPackage(path string) (DataPackage, int) {
@@ -128,13 +64,13 @@ func (this *bencodeTorrent) makeKeyPackage() KeyPackage {
 	var ret KeyPackage
 	buf := []byte(this.Info.Pieces)
 
-	ret.size = len(buf) / SHA1StrLen
+	ret.size = len(buf) / SHA1Len
 	ret.infoHash, _ = this.Info.InfoHash()
 	ret.length = this.Info.Length
 	ret.key = make([]KeyPiece, ret.size)
 
 	for i := 0; i < ret.size; i++ {
-		copy(ret.key[i][:], buf[i*SHA1StrLen:(i+1)*SHA1StrLen])
+		copy(ret.key[i][:], buf[i*SHA1Len:(i+1)*SHA1Len])
 	}
 	return ret
 }

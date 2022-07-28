@@ -40,7 +40,6 @@ func Open(path string) (*bencodeTorrent, error) {
 	return &bto, nil
 }
 
-//InfoHash hash the bencodeInfo
 func (i *bencodeInfo) InfoHash() ([SHA1Len]byte, error) {
 	var buf bytes.Buffer
 	err := bencode.Marshal(&buf, *i)
@@ -51,7 +50,6 @@ func (i *bencodeInfo) InfoHash() ([SHA1Len]byte, error) {
 	return h, nil
 }
 
-//PiecesHash hash one piece, file & index unique
 func PiecesHash(piece DataPiece, index int) ([SHA1Len]byte, error) {
 	piece = append(piece, []byte(strconv.Itoa(index))...)
 	pieceHash := sha1.Sum(piece)

@@ -22,7 +22,7 @@ const (
 	PieceSize = 262144
 	TimeWait = 3 * time.Second
 	SHA1Len = 20
-	SHA1StrLen = 40
+	WorkQueueBuffer = 128
 	AfterLoginSleep = time.Second
 	 AfterQuitSleep = time.Second
 
@@ -38,10 +38,10 @@ const (
 
 )
 
+
 func MakeMagnet(infoHash string) string {
 	return "magnet:?xt=urn:btih:" + infoHash
 }
-
 
 func GetLocalIP() string {
 	var localaddress string
