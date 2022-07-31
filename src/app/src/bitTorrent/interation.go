@@ -2,20 +2,23 @@ package bitTorrent
 
 import (
 	"fmt"
+	"os"
+	
+	"github.com/sirupsen/logrus"
 )
 
 var self Client
 var port int
 var bootstrapAddr string
-
+var f *os.File
 func Welcome() {
+	f, _ = os.Create("/tmp/test.log")
+	logrus.SetOutput(f)
 	hiBlue.Println("Hello, this is a naive bitTorrent, Welcome.")
 
 	hiBlue.Println("* Please Input your port and bootstrap address")
 	fmt.Scanln(&port)
 	self.Init(port)
-
-	self.node.Run()
 
 	blue.Println("type \"help\" for more info")
 
@@ -28,7 +31,8 @@ func Welcome() {
 		)
 		fmt.Scanln(&op, &element1, &element2, &element3)
 		if op == "join" {
-			flag := self.node.Join(element2)
+			flag := self.node.Join(element1)
+			// fmt.Println(element2)
 			if flag {
 				green.Println("Join succeed")
 			} else {
@@ -37,7 +41,7 @@ func Welcome() {
 			continue
 		}
 		if op == "create" {
-			self.node.Create()
+			self.Create()
 			green.Println("Create network in ", self.addr, "succeed")
 			continue
 		}
@@ -50,9 +54,9 @@ func Welcome() {
 
 		if op == "download" {
 			if element1 == "-t" {
-				self.DownLoadByMagnet(element2, element3)
-			} else if element1 == "-m" {
 				self.DownLoadByTorrent(element2, element3)
+			} else if element1 == "-m" {
+				self.DownLoadByMagnet(element2, element3)
 			} else {
 				red.Println("either -t or -m is needed")
 			}

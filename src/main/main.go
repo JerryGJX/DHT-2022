@@ -39,7 +39,7 @@ func init() {
 	//	flag.Usage()
 	//	os.Exit(0)
 	//}
-	testName = "basic"
+	testName = "all"
 	//var err error
 	//f, err = os.Create("log.txt")
 	//if err != nil {

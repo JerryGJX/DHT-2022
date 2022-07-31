@@ -243,13 +243,13 @@ func (ptr *Node) DataSize() int {
 
 //--------------------private func----------------------
 func createLog(addr string, callFuncName string, funcName string, logType string, info string) {
-	if logType == "Info" {
-		log.Infof("[%s] <%s> Call <%s> Succeed %s\n", addr, callFuncName, funcName, info)
-	} else if logType == "Warning" {
-		log.Warningf("[%s] <%s> Call <%s> Warning %s\n", addr, callFuncName, funcName, info)
-	} else if logType == "Error" {
-		log.Errorf("[%s] <%s> Call <%s> Error %s\n", addr, callFuncName, funcName, info)
-	}
+	// if logType == "Info" {
+	// 	log.Infof("[%s] <%s> Call <%s> Succeed %s\n", addr, callFuncName, funcName, info)
+	// } else if logType == "Warning" {
+	// 	log.Warningf("[%s] <%s> Call <%s> Warning %s\n", addr, callFuncName, funcName, info)
+	// } else if logType == "Error" {
+	// 	log.Errorf("[%s] <%s> Call <%s> Error %s\n", addr, callFuncName, funcName, info)
+	// }
 }
 
 func (ptr *Node) findSuccessor(targetId *big.Int, result *string) error {

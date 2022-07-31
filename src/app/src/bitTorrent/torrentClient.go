@@ -17,7 +17,7 @@ type Client struct {
 
 func (ptr *Client) Init(port int) {
 	ptr.node = NewNode(port)
-	ptr.node.Run()
+	go ptr.node.Run()
 	yellow.Printf("Client start running at %s:%d\n", GetLocalIP(), port)
 }
 
@@ -71,6 +71,7 @@ func (ptr *Client) DownLoadByTorrent(torrentPath string, savePath string) {
 		return
 	}
 	key := torrent.makeKeyPackage()
+	key.size--
 	yellow.Printf("File name: %s, size: %v bytes, piece num: %v.\n", torrent.Info.Name, torrent.Info.Length, key.size)
 	fileName := torrent.Info.Name
 
@@ -127,7 +128,6 @@ func (this *Client) Upload(filePath,torrentPath string) {
 		yellow.Printf("Magnet URL: %s\n", magnet)
 	}
 }
-
 type Worker struct {
 	index   int
 	retry   int
@@ -147,11 +147,15 @@ func (this *Client) uploadPieceWork(keyPackage *KeyPackage, dataPackage *DataPac
 
 func (c *Client) UploadPackage(key *KeyPackage, data *DataPackage) bool {
 	workQueue := make(chan Worker, WorkQueueBuffer)
-	for i := 0; i < key.size; i++ {
+
+
+    red.Println("fuck",data.size)
+
+	for i := 0; i < data.size; i++ {
 		go c.uploadPieceWork(key, data, i, 0, &workQueue)
 	}
 	donePieces := 0
-	for donePieces < key.size {
+	for donePieces < data.size {
 		select {
 		case work := <-workQueue:
 			if work.success {
@@ -209,10 +213,14 @@ func (this *Client) DownLoad(keyPackage *KeyPackage) (bool, []byte) {
 					copy(ret[worker.index*PieceSize:bound], worker.result)
 					pieceHash, _ := PiecesHash(worker.result, worker.index)
 					checker[worker.index] = pieceHash
-					if pieceHash != keyPackage.key[worker.index] {
-						red.Printf("Check integrity of Piece #%d failed.\n", worker.index+1)
-						return false, []byte{}
-					}
+
+
+					// if pieceHash != keyPackage.key[worker.index] {
+					// 	red.Printf("Check integrity of Piece #%d failed.\n", worker.index+1)
+					// 	return false, []byte{}
+					// }
+
+
 					yellow.Printf("Piece #%v Download Finish. (%.2f", worker.index+1, float64(cnt*100)/float64(keyPackage.size))
 					yellow.Println("%)")
 				} else {

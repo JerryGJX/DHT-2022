@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-const IDlength int = 160 // bytes
+const IDlength int = 160 
 
-const K int = 20 // buckets size
+const K int = 48 // buckets size
 const alpha int32 = 3
 const tryTimes int = 4
 
